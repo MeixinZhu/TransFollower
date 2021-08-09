@@ -15,13 +15,13 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 SEQ_LEN = 40
 LABEL_LEN = 10
 PRED_LEN = 150 - SEQ_LEN
-BATCH_SIZE = 128
+BATCH_SIZE = 512
 lr = 6e-5
 T = 0.1 # data sampling interval
 N_EPOCHES = 1000
 
-exp_name = 'informer_SHNDS'
-save = f'{exp_name}_model.pt'
+exp_name = 'informer_SHNDS_full'
+save = f'checkpoints/{exp_name}_model.pt'
 writer = SummaryWriter(f'runs/{exp_name}')
 # shutil.rmtree(f'runs/{exp_name}')
 
@@ -46,7 +46,7 @@ class SHNDS(torch.utils.data.Dataset):
         ret['s0'] = torch.from_numpy(np.array(event[self.seq_len, 0])).unsqueeze(-1)
         return ret
 
-SAMPLE = True
+SAMPLE = False
 if not SAMPLE:
     train_dataset = SHNDS(seq_len = SEQ_LEN, split = 'train_SH', label_len = LABEL_LEN)
     val_dataset = SHNDS(seq_len = SEQ_LEN, split = 'val_SH', label_len = LABEL_LEN)
@@ -177,8 +177,8 @@ for epoch in range(N_EPOCHES):
         train_losses.append(loss.item())
     train_loss = np.mean(train_losses)
     val_loss = val(val_loader)
-    print("Epoch: {0}| Train Loss: {1:.7f} Vali Loss: {2:.7f}".format(
-                epoch + 1, train_loss, val_loss))
+    print("Epoch: {0}| Train Loss: {1:.7f} Vali Loss: {2:.7f} Best val loss: {3:.7f}".format(
+                epoch + 1, train_loss, val_loss, best_val_loss))
 
     if not best_val_loss or best_val_loss > val_loss:
         with open(save, 'wb') as f:
