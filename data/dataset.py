@@ -37,7 +37,7 @@ class CarFolData(torch.utils.data.Dataset):
         ret['svSpd'] = torch.from_numpy(np.array(event[self.seq_len-self.label_len:150, 1])).unsqueeze(-1) 
         ret['spacing'] = torch.from_numpy(np.array(event[self.seq_len+1:150, 0])) 
         ret['s0'] = torch.from_numpy(np.array(event[self.seq_len, 0])).unsqueeze(-1)
-        # ret['lvSpdShift'] = torch.from_numpy(np.array(event[self.seq_len-self.label_len:150, 3])).unsqueeze(-1) 
+        ret['lvSpdShift'] = torch.from_numpy(np.array(event[self.seq_len-self.label_len:150, -1])).unsqueeze(-1) 
         return ret 
 
 def get_data(data_name = 'SH', sample = False, seq_len = SEQ_LEN, label_len = LABEL_LEN, shuffle = True, batch_size = BATCH_SIZE):

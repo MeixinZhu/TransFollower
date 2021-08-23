@@ -42,12 +42,13 @@ def val(model_name, data_name):
 
             batch_y = item['svSpd'].float()
             y_label = batch_y[:,-PRED_LEN:,:].to(device)
-            batch_y_mark = item['lvSpd'].float().to(device)
 
             # decoder input
             if data_name == 'SH_shift':
+                batch_y_mark = item['lvSpdShift'].float().to(device)
                 dec_inp = torch.zeros([batch_y.shape[0], PRED_LEN, batch_y.shape[-1]]).float() 
             else:
+                batch_y_mark = item['lvSpd'].float().to(device)
                 dec_inp = torch.zeros([batch_y.shape[0], PRED_LEN, batch_y.shape[-1]]).float() + \
                         batch_y[:,:LABEL_LEN,:].mean(axis = 1, keepdim=True)
             dec_inp = torch.cat([batch_y[:,:LABEL_LEN,:], dec_inp], dim=1).float().to(device)

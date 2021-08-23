@@ -36,9 +36,9 @@ class Transfollower(nn.Module):
         enc_inp = self.enc_emb(enc_inp) + self.enc_positional_embedding(enc_pos)[None,:,:]
         dec_inp = self.dec_emb(dec_inp) + self.dec_positional_embedding(dec_pos)[None,:,:]
         
-        out, enc_attns, dec_attns = self.transformer(enc_inp, dec_inp)
+        out, enc_attns, dec_attns, enc_dec_attns = self.transformer(enc_inp, dec_inp)
         out = self.out_proj(out)
-        return out[:,-settings.PRED_LEN:,:], enc_attns, dec_attns
+        return out[:,-settings.PRED_LEN:,:], enc_attns, dec_attns, enc_dec_attns
 
 MAX_SPD = 25 
 class lstm_model(nn.Module):

@@ -52,7 +52,7 @@ def val(data_loader):
 
             batch_y = item['svSpd'].float()
             y_label = batch_y[:,-PRED_LEN:,:].to(device)
-            batch_y_mark = item['lvSpd'].float().to(device)
+            batch_y_mark = item['lvSpdShift'].float().to(device)
 
             # decoder input
             dec_inp = torch.zeros([batch_y.shape[0], PRED_LEN, batch_y.shape[-1]]).float() 
@@ -85,7 +85,7 @@ for epoch in range(N_EPOCHES):
         batch_y = item['svSpd'].float()
         y_label = batch_y[:,-PRED_LEN:,:].to(device)
 
-        batch_y_mark = item['lvSpd'].float().to(device)
+        batch_y_mark = item['lvSpdShift'].float().to(device)
 
         # decoder input
         dec_inp = torch.zeros([batch_y.shape[0], PRED_LEN, batch_y.shape[-1]]).float() 
