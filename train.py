@@ -6,41 +6,50 @@ import numpy as np
 
 from data.dataset import get_data
 from model.model import Transfollower, lstm_model, nn_model
+from config import Settings, HighDSettings
+# import os 
+# os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+# os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+# os.environ["CUDA_VISIBLE_DEVICES"]=""  # specify which GPU(s) to be used
 
-from config import Settings
-settings = Settings()
 
-MODEL = 'transfollower' # ['transfollower','lstm', 'nn']
-DATASET = 'SH' # ['SH', 'NGSIM']
-exp_name = f'{DATASET}_{MODEL}_revise'
+DATASET = 'highD' # ['SH', 'NGSIM', 'highD']
+if DATASET == 'highD':
+    settings = HighDSettings()
+else:
+    setting = Settings()
+
+MODEL = 'lstm' # ['transfollower','lstm', 'nn']
+
+exp_name = f'{DATASET}_{MODEL}'
 save = f'checkpoints/{exp_name}_model.pt'
 writer = SummaryWriter(f'runs/{exp_name}')
 
 # parameters
 SEQ_LEN = settings.SEQ_LEN
-LABEL_LEN = 40 if MODEL == 'nn' else settings.LABEL_LEN
+
+if MODEL == 'nn':
+    settings.LABEL_LEN = SEQ_LEN
+
+LABEL_LEN = settings.LABEL_LEN
 PRED_LEN = settings.PRED_LEN
 BATCH_SIZE = settings.BATCH_SIZE
 lr = settings.lr
 T = settings.T # data sampling interval
 N_EPOCHES = settings.N_EPOCHES
 
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 if MODEL == 'transfollower':    
-    model = Transfollower().to(device)
+    model = Transfollower(config = settings).to(device)
 elif MODEL == 'lstm':
-    model = lstm_model().to(device)
+    model = lstm_model(config = settings).to(device)
 elif MODEL == 'nn':
-    model = nn_model().to(device)
+    model = nn_model(config = settings).to(device)
 
 model_optim = optim.Adam(model.parameters(), lr=lr)
 criterion = nn.MSELoss()
 
-if MODEL == 'nn':
-    train_loader, val_loader, _ = get_data(data_name = DATASET, label_len = SEQ_LEN)
-else:
-    train_loader, val_loader, _ = get_data(data_name= DATASET)
-
+train_loader, val_loader, _ = get_data(data_name = DATASET, config = settings)
 
 def val(data_loader):
     model.eval()
@@ -62,8 +71,10 @@ def val(data_loader):
             # encoder - decoder
             if MODEL == 'nn':
                 out = model(dec_inp)
-            else:
+            elif MODEL == 'transfollower':
                 out = model(enc_inp, dec_inp)[0]
+            else:
+                out = model(enc_inp, dec_inp)
             
             lvSpd, spacing = item['lvSpd'][:, LABEL_LEN:,:].float().to(device), item['spacing'].float().to(device)
             relSpd_ = (lvSpd - out).squeeze()
@@ -88,15 +99,17 @@ for epoch in range(N_EPOCHES):
 
         # decoder input
         dec_inp = torch.zeros([batch_y.shape[0], PRED_LEN, batch_y.shape[-1]]).float() + \
-                batch_y[:,:LABEL_LEN,:].mean(axis = 1, keepdim=True)
-        dec_inp = torch.cat([batch_y[:,:LABEL_LEN,:], dec_inp], dim=1).float().to(device)
+                batch_y[:,:LABEL_LEN,:].mean(axis = 1, keepdim=True) # Use mean padding instead of zero padding
+        dec_inp = torch.cat([batch_y[:,:LABEL_LEN,:], dec_inp], dim=1).float().to(device) # concat label with padding
         dec_inp = torch.cat([dec_inp, batch_y_mark], axis = -1) # adding lv speed
         
         # encoder - decoder
         if MODEL == 'nn':
             out = model(dec_inp)
-        else:
+        elif MODEL == 'transfollower':
             out = model(enc_inp, dec_inp)[0]
+        else:
+            out = model(enc_inp, dec_inp)
         
         lvSpd, spacing = item['lvSpd'][:, LABEL_LEN:,:].float().to(device), item['spacing'].float().to(device)
         relSpd_ = (lvSpd - out).squeeze()
