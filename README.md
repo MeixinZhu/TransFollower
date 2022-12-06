@@ -34,3 +34,10 @@ Test IDM/IDMM models:
 
 ## Pretrained Models
 Pretrained models are stored in `checkpoints/` folder. 
+
+## Reference
+Trajectron++: https://github.com/StanfordASL/Trajectron-plus-plus   
+STAR: https://github.com/Majiker/STAR   
+
+## Contact
+meixin@ust.hk
