@@ -35,43 +35,9 @@ class Transfollower(nn.Module):
         out = self.out_proj(out)
         return out[:,-self.settings.PRED_LEN:,:], enc_attns, dec_attns, enc_dec_attns
 
-class TransfollowerDouble(nn.Module):
-    def __init__(self, enc_in = 4, dec_in = 2, d_model = 256, num_encoder_layers = 2, num_decoder_layers = 1):
-        super(TransfollowerDouble, self).__init__()
-        self.transformer = Transformer(d_model= d_model, nhead=8, num_encoder_layers=num_encoder_layers,
-                                   num_decoder_layers=num_decoder_layers, dim_feedforward=1024, 
-                                   dropout=0.1, activation='relu', custom_encoder=None,
-                                   custom_decoder=None, layer_norm_eps=1e-05, batch_first=True, 
-                                   device=None, dtype=None)
-        self.enc_emb = nn.Linear(enc_in, d_model)
-        self.dec_emb = nn.Linear(dec_in, d_model)
-        self.out_proj = nn.Linear(d_model, 1, bias = True)
-        
-        self.enc_positional_embedding_sv = nn.Embedding(settings.SEQ_LEN, d_model)
-        self.enc_positional_embedding_lv = nn.Embedding(settings.SEQ_LEN, d_model)
-        self.dec_positional_embedding = nn.Embedding(settings.PRED_LEN + settings.LABEL_LEN, d_model)
-
-        nn.init.normal_(self.enc_emb.weight, 0, .02)
-        nn.init.normal_(self.dec_emb.weight, 0, .02)
-        nn.init.normal_(self.out_proj.weight, 0, .02)
-        nn.init.normal_(self.enc_positional_embedding_sv.weight, 0, .02)
-        nn.init.normal_(self.enc_positional_embedding_lv.weight, 0, .02)
-        nn.init.normal_(self.dec_positional_embedding.weight, 0, .02)
-
-    def forward(self, enc_inp, dec_inp):
-        enc_pos = torch.arange(0, enc_inp.shape[1], dtype=torch.long).to(enc_inp.device)
-        dec_pos = torch.arange(0, dec_inp.shape[1], dtype=torch.long).to(dec_inp.device)
-        enc_inp = self.enc_emb(enc_inp) + self.enc_positional_embedding_sv(enc_pos)[None,:,:] + self.enc_positional_embedding_lv(enc_pos)[None,:,:]
-        dec_inp = self.dec_emb(dec_inp) + self.dec_positional_embedding(dec_pos)[None,:,:]
-        
-        out, enc_attns, dec_attns, enc_dec_attns = self.transformer(enc_inp, dec_inp)
-        out = self.out_proj(out)
-        return out[:,-settings.PRED_LEN:,:], enc_attns, dec_attns, enc_dec_attns
-
-
 MAX_SPD = 25 
 class lstm_model(nn.Module):
-    def __init__(self, config, input_size = 4, hidden_size = 32, lstm_layers = 1, dropout = 0.1):
+    def __init__(self, config, input_size = 4, hidden_size = 32, lstm_layers = 1, dropout = 0):
         super(lstm_model, self).__init__()
         self.encoder = nn.LSTM(input_size, hidden_size, lstm_layers, batch_first = True, dropout = dropout)
         self.decoder = nn.LSTM(2, hidden_size, lstm_layers, batch_first = True, dropout = dropout)
@@ -107,44 +73,6 @@ class nn_model(nn.Module):
         out = self.encoder(src)
         out = torch.tanh(out)*MAX_SPD/2 + MAX_SPD/2 
         return out[:,-self.settings.PRED_LEN:,:]
-
-class Transfollower_pretrain(nn.Module):
-    def __init__(self, enc_in = 3, dec_in = 2, d_model = 256):
-        super(Transfollower_pretrain, self).__init__()
-        self.transformer = nn.Transformer(d_model= d_model, nhead=8, num_encoder_layers=2,
-                                   num_decoder_layers=1, dim_feedforward=1024, 
-                                   dropout=0.1, activation='relu', custom_encoder=None,
-                                   custom_decoder=None, layer_norm_eps=1e-05, batch_first=True, 
-                                   device=None, dtype=None)
-        self.enc_emb = nn.Linear(enc_in, d_model)
-        self.dec_emb = nn.Linear(dec_in, d_model)
-        self.out_proj = nn.Linear(d_model, 1, bias = True)
-        self.cls_head = nn.Linear(d_model, 2) 
-        
-        self.enc_positional_embedding = nn.Embedding(settings.SEQ_LEN, d_model)
-        self.dec_positional_embedding = nn.Embedding(settings.PRED_LEN + settings.LABEL_LEN, d_model)
-
-        nn.init.normal_(self.enc_emb.weight, 0, .02)
-        nn.init.normal_(self.dec_emb.weight, 0, .02)
-        nn.init.normal_(self.out_proj.weight, 0, .02)
-        nn.init.normal_(self.enc_positional_embedding.weight, 0, .02)
-        nn.init.normal_(self.dec_positional_embedding.weight, 0, .02)
-        nn.init.normal_(self.cls_head.weight, 0, .02)
-
-    def forward(self, enc_inp, dec_inp, task = 'cls'):
-        enc_pos = torch.arange(0, enc_inp.shape[1], dtype=torch.long).to(enc_inp.device)
-        dec_pos = torch.arange(0, dec_inp.shape[1], dtype=torch.long).to(dec_inp.device)
-        enc_inp = self.enc_emb(enc_inp) + self.enc_positional_embedding(enc_pos)[None,:,:]
-        dec_inp = self.dec_emb(dec_inp) + self.dec_positional_embedding(dec_pos)[None,:,:]
-        
-        out = self.transformer(enc_inp, dec_inp)
-        
-        if task == 'reg':
-            out = self.out_proj(out)
-            return out[:,-settings.PRED_LEN:,:]
-        else:
-            out = self.cls_head(out[:,-1,:].squeeze(1))
-            return torch.log_softmax(out, dim = -1)
 
 class Trajectron(nn.Module):
     def __init__(self, config, input_dim = 2) -> None:
@@ -189,11 +117,3 @@ class Trajectron(nn.Module):
             outputs[framenum] = outputs_current
 
         return outputs
-            
-
-
-
-
-
-
-

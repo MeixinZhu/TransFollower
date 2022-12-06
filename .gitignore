@@ -5,7 +5,7 @@ __pycache__/
 
 # C extensions
 *.so
-checkpoints/
+# checkpoints/
 runs/
 
 # Distribution / packaging
@@ -129,3 +129,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+data/raw_data/train_SH.npy
+data/raw_data/val_SH.npy
+data/raw_data/test_SH.npy

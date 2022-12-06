@@ -7,19 +7,18 @@ import numpy as np
 from data.dataset import get_data
 from model.model import Transfollower, lstm_model, nn_model
 from config import Settings, HighDSettings
-# import os 
-# os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
-# os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-# os.environ["CUDA_VISIBLE_DEVICES"]=""  # specify which GPU(s) to be used
-
+import os 
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"  # specify which GPU(s) to be used
 
 DATASET = 'highD' # ['SH', 'NGSIM', 'highD']
+
 if DATASET == 'highD':
     settings = HighDSettings()
 else:
-    setting = Settings()
+    settings = Settings()
 
-MODEL = 'lstm' # ['transfollower','lstm', 'nn']
+MODEL = 'transfollower' # ['transfollower','lstm', 'nn']
 
 exp_name = f'{DATASET}_{MODEL}'
 save = f'checkpoints/{exp_name}_model.pt'
